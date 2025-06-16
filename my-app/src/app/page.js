@@ -8,11 +8,17 @@ export default function Home() {
   //.json string fetched from db
   const [list, setList] = useState(null);
 
-  // tracks and stores user input
+  // tracks and stores user input for new tasks to add
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [dateError, setDateError] = useState("");
+
+  // allow edits and stores updates to existing tasks
+  const [editingId, setEditingId] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editDueDate, setEditDueDate] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {       //async so application is not frozen whilst script is running
@@ -94,7 +100,7 @@ export default function Home() {
         setMessage("An error has occoured during the updates:(");
       }
     } else {
-      console.error("Failed to add task");
+      console.error("Failed to add response");
     }
   };
 
@@ -111,10 +117,10 @@ export default function Home() {
         setList(updated);
         setMessage("Task was deleted!");
       } else {
-        setMessage("An error has occoured during the updates:(");
+        setMessage("Error during delete");
       }
     } else {
-      console.error("Failed to delete task");
+      console.error("Failed to generate delete response");
     }
   }
 
@@ -137,28 +143,107 @@ export default function Home() {
         setMessage("An error has occoured during UPDATE");
       }
     } else {
-      console.error("Failed to mark completed");
+      console.error("Failed to generate response for marking complete");
     }
   }
+
+  const handleEdit = async (id) => {
+    const res = await fetch("/api/dbFunctions", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id,
+        title: editTitle,
+        description: editDescription,
+        due_date: editDueDate,
+      }),
+    });
+
+    if (res.ok) {
+      const updated = await res.json();
+      if (Array.isArray(updated)) {
+        setList(updated);
+        setMessage("Task updated!");
+      } else {
+        setMessage("Update failed");
+      }
+    } else {
+      console.error("Failed to generate response for edit");
+    }
+
+    setEditingId(null); 
+  };
 
   if (!list) {
     return <p>loading...</p>
   }
 
-  const rows = list.map((list) => (
-    <Table.Tr key={list.id}>
+  const rows = list.map((task) => (
+    <Table.Tr key={task.id}>
       <Table.Td>
         <Checkbox
-        checked={list.status === "Completed"}
-        onChange={() => handleComplete(list.id, list.status)}/>
+          checked={task.status === "Completed"}
+          onChange={() => handleComplete(task.id, task.status)} />
       </Table.Td>
-      <Table.Td>{list.title}</Table.Td>
-      <Table.Td>{list.description}</Table.Td>
-      <Table.Td>{list.due_date}</Table.Td>
-      <Table.Td>{list.status}</Table.Td>
       <Table.Td>
-        <Button color="red" onClick={() => handleDelete(list.id)}>Delete</Button>
-        <Button>Edit</Button>
+        {editingId === task.id ? (
+          <TextInput
+            placeholder="Enter task title"
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.currentTarget.value)}
+            error={!editTitle.trim() ? "Task required :(" : false}            // error validation where .trim() ensures white spaces don't count as valid input
+          />
+        ) : (
+          <p>{task.title}</p>
+        )}
+      </Table.Td>
+
+      <Table.Td>
+        {editingId === task.id ? (
+          <TextInput
+            value={editDescription}
+            placeholder="(Optional) Enter task description"
+            onChange={(e) => setEditDescription(e.currentTarget.value)}
+          />
+        ) : (
+          <p>{task.description}</p>
+        )}</Table.Td>
+
+      <Table.Td>
+        {editingId === task.id ? (
+          <TextInput
+            placeholder="Enter due date"
+            value={editDueDate}
+            onChange={(e) => {
+              const newDate = e.currentTarget.value;  //setState is asynchronous, ensures setState get the latest value
+              setEditDueDate(newDate)
+              isValidDate(newDate);
+            }}
+            error={dateError} />
+        ) : (
+          <p>{task.due_date}</p>
+        )}
+      </Table.Td>
+
+      <Table.Td>{task.status}</Table.Td>
+      <Table.Td>
+        {editingId === task.id ? (
+          <>
+            <Button onClick={() => handleEdit(task.id)} color="green">Save</Button>
+            <Button onClick={() => setEditingId(null)} color="red">Cancel</Button>
+          </>
+        ) : (
+          <>
+            <Button color="red" onClick={() => handleDelete(task.id)}>Delete</Button>
+            <Button
+              onClick={() => {
+                setEditingId(task.id);
+                setEditTitle(task.title);
+                setEditDescription(task.description);
+                setEditDueDate(task.due_date);
+              }}>Edit</Button>
+          </>
+        )}
 
       </Table.Td>
     </Table.Tr>
@@ -168,7 +253,7 @@ export default function Home() {
 
   return (
     <div className=" w-full h-full justify-center items-center" >
-      <Table verticalSpacing="md" className="bg-slate-300">
+      <Table withRowBorders={false} verticalSpacing="md" className="bg-slate-300">
         <Table.Thead className="bg-slate-500">
           <Table.Tr >
             <Table.Th className="bg-slate-300"> </Table.Th>

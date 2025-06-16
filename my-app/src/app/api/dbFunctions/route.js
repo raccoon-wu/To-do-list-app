@@ -67,7 +67,7 @@ export async function DELETE(req) {
   const { id } = body;
   const sql = `DELETE FROM data WHERE id = ?`;
 
-  if (!id) {
+  if (!id || !status) {
     return new Response(JSON.stringify({ error: 'Missing ID' }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
@@ -104,18 +104,58 @@ export async function DELETE(req) {
 export async function PATCH(req) {
   const db = new sqlite3.Database(getDbPath());
   const body = await req.json();
-  const { id, status } = body;
 
-  if (!id || !status) {
-    return new Response(JSON.stringify({ error: 'Missing ID or status' }), {
+  const { id, title, description, due_date, status: taskStatus } = body;
+
+  if (!id) {
+    return new Response(JSON.stringify({ error: 'Missing ID' }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });
   }
 
+  let updates = [];
+  let values = [];
+
+  if (title !== undefined) {
+    updates.push("title = ?");
+    values.push(title);
+  }
+
+  if (description !== undefined) {
+    updates.push("description = ?");
+    values.push(description);
+  }
+
+  if (due_date !== undefined) {
+    updates.push("due_date = ?");
+    values.push(due_date);
+  }
+
+  if (taskStatus !== undefined) {
+    updates.push("status = ?");
+    values.push(taskStatus);
+  }
+
+  if (updates.length === 0) {
+    return new Response(JSON.stringify({ error: 'No fields to update' }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Push ID to the end for the WHERE clause
+  values.push(id);
+
+  const sql = `UPDATE data SET ${updates.join(", ")} WHERE id = ?`;
+
+  console.log("PATCH SQL:", sql);
+  console.log("PATCH VALUES:", values);
+
   return new Promise((resolve) => {
-    db.run("UPDATE data SET status = ? WHERE id = ?", [status, id], function (err) {
+    db.run(sql, values, function (err) {
       if (err) {
+        console.error("DB error:", err); // 🧨 Catch error here
         return resolve(new Response(JSON.stringify({ error: err.message }), {
           status: 500,
           headers: { "Content-Type": "application/json" },
@@ -125,6 +165,7 @@ export async function PATCH(req) {
       db.all("SELECT * FROM data", [], (err, rows) => {
         db.close();
         if (err) {
+          console.error("DB read error:", err); // 🧨 Also catch error here
           return resolve(new Response(JSON.stringify({ error: err.message }), {
             status: 500,
             headers: { "Content-Type": "application/json" },
@@ -138,4 +179,4 @@ export async function PATCH(req) {
       });
     });
   });
-};
+}
