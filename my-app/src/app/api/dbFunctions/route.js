@@ -67,7 +67,7 @@ export async function DELETE(req) {
   const { id } = body;
   const sql = `DELETE FROM data WHERE id = ?`;
 
-  if (!id || !status) {
+  if (!id ) {
     return new Response(JSON.stringify({ error: 'Missing ID' }), {
       status: 400,
       headers: { "Content-Type": "application/json" },

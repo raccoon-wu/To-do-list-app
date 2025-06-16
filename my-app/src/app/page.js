@@ -20,6 +20,10 @@ export default function Home() {
   const [editDescription, setEditDescription] = useState("");
   const [editDueDate, setEditDueDate] = useState("");
 
+  const [ascSort, setAscSort] = useState(true);
+  const [statusSort, setStatusSort] = useState("Both");
+
+
   useEffect(() => {
     const fetchData = async () => {       //async so application is not frozen whilst script is running
 
@@ -39,19 +43,14 @@ export default function Home() {
     fetchData();
   }, []);
 
-  // If shit isn't loaded, just return a basic loading screen
-  if (!list) {
-    return <p className="text-white text-center mt-10">Loading...</p>;
-  }
-
   const isValidDate = (newDate) => {
     // if (!/^\d+$/.test(dueDate)) return (setDateError("Please use only numbers?"))
     // Checks if date is in dd-mm-yyyy format, only digits and dashes are allowed
     if (newDate == "") return (setDateError("Date required"));
-    if (!/^\d{2}-\d{2}-\d{4}$/.test(newDate)) return (setDateError("Date required in dd-mm-yyyy format"));
+    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(newDate)) { return setDateError("Date must be in dd/mm/yyyy format"); }
 
     // splits input string into ["xx", "xx", "xx"] as sperated by "-", converts each string into a number, then assigns through array descructuring
-    const [day, month, year] = newDate.split("-").map(Number);
+    const [day, month, year] = newDate.split("/").map(Number);
     // 'Date' object allows JavaScript to parse reliably, can only be created if all values are valid, otherwise Date returns 'Invalid date'
     //  .padStart(2, '0') ensures it's always 2 digits
     const date = new Date(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
@@ -65,6 +64,12 @@ export default function Home() {
       date.getFullYear() !== year
     ) {
       return setDateError("Date does not exist");
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (date < today) {
+      return setDateError("Date must be today or later");
     }
     setDateError(null);
   };
@@ -171,14 +176,51 @@ export default function Home() {
       console.error("Failed to generate response for edit");
     }
 
-    setEditingId(null); 
+    setEditingId(null);
   };
 
-  if (!list) {
-    return <p>loading...</p>
+  const handleDateSort = () => {
+    if (list) {
+      const sortedDates = [...list].sort((a, b) => {
+        const [aDay, aMonth, aYear] = a.due_date.split("/");
+        const [bDay, bMonth, bYear] = b.due_date.split("/");
+
+        const aDate = new Date(`${aYear}-${aMonth}-${aDay}`);
+        const bDate = new Date(`${bYear}-${bMonth}-${bDay}`);
+
+        return (
+          ascSort ? (aDate - bDate) : (bDate - aDate)
+        )
+      });
+      setList(sortedDates);
+      setAscSort(!ascSort);
+    } else { setMessage("No items to sort!") }
   }
 
-  const rows = list.map((task) => (
+  const filteredStatusList = Array.isArray(list)
+    ? list.filter((task) => {
+      if (statusSort === "PendingOnly") return task.status === "Pending";
+      if (statusSort === "CompletedOnly") return task.status === "Completed";
+      return true;
+    })
+    : []; // fallback during loading
+
+    useEffect(() => {
+  if (list === null || list.length === 0) {
+    setMessage("Add your first task to start!");
+  } else {
+    setMessage(""); // Clear message when tasks exist
+  }
+}, [list]);
+
+  if (!Array.isArray(list)) {
+    return <p>Loading...</p>;
+  }
+
+
+
+
+  const rows = filteredStatusList.map((task) => (
     <Table.Tr key={task.id}>
       <Table.Td>
         <Checkbox
@@ -259,8 +301,15 @@ export default function Home() {
             <Table.Th className="bg-slate-300"> </Table.Th>
             <Table.Th>Title</Table.Th>
             <Table.Th>Description</Table.Th>
-            <Table.Th>Due Date</Table.Th>
-            <Table.Th>Status</Table.Th>
+            <Table.Th onClick={handleDateSort} className="cursor-pointer">Due Date {ascSort ? "↑" : "↓"}</Table.Th>
+            <Table.Th onClick={() => {
+              setStatusSort((prev) =>
+                prev === "Both" ? "PendingOnly" :
+                  prev === "PendingOnly" ? "CompletedOnly" :
+                    "Both"
+              );
+            }}
+              className="cursor-pointer">Status ({statusSort})</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
