@@ -308,13 +308,14 @@ export default function Home() {
           </Table.Tr>
         </Table.Thead>
 
-        {/* table contents */}
+        {/* table body */}
         <Table.Tbody>
           {rows}
           <Table.Tr className="bg-white align-top h-16 ">
             <Table.Td></Table.Td>
 
             {/* extra row for submitting new tasks */}
+            {/* Input space for new title */}
             <Table.Td >
               <TextInput
                 required                                                      // adds asterisk, prevents submission ONLY if wrapped in <form onSubmit> if field is empty
@@ -326,6 +327,8 @@ export default function Home() {
                 error={!title.trim() ? "Task required :(" : false}            // error validation where .trim() ensures white spaces don't count as valid input
               />
             </Table.Td>
+
+            {/* Input space for new description */}
             <Table.Td>
               <TextInput
                 classNames={{ input: "w-5/6" }}                                   // mantine styling
@@ -334,6 +337,8 @@ export default function Home() {
                 onChange={(e) => setDescription(e.currentTarget.value)}
                 placeholder="(Optional) Enter task description" />
             </Table.Td>
+
+            {/* Input space for new due date */}
             <Table.Td>
               <TextInput
                 required
@@ -347,6 +352,8 @@ export default function Home() {
                 }}
                 error={dateError} />
             </Table.Td>
+
+            {/* Submit input button */}
             <Table.Td>
               <Button className="mt-5" color="green" onClick={handleSubmit}>
                 Submit New Task
