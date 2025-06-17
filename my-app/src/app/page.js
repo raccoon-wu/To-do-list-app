@@ -4,9 +4,11 @@ import { Box, Table, TextInput, Button, Checkbox } from '@mantine/core';
 import { fetchTasks, addTask, deleteTask, updateTaskStatus, editTask, } from "./services/taskServices.js"; //server API calls
 import "./globals.css"
 
+import { MdEdit, MdDeleteOutline, MdCheck, MdOutlineCancel, MdOutlineAdd } from "react-icons/md";
+
 export default function Home() {
 
-  const [message, setMessage] = useState("What");
+  const [message, setMessage] = useState("Hello User!");
   //.json string fetched from db
   const [list, setList] = useState(null);
 
@@ -97,7 +99,7 @@ export default function Home() {
       setDateError("");
       if (Array.isArray(updated)) { // checks whether given value is array
         setList(updated);
-        setMessage("Task added successfully!");
+        setMessage("Task added successfully :D");
       } else {
         setMessage("An error has occoured during the updates:(");
       }
@@ -116,10 +118,10 @@ export default function Home() {
         setList(updated);
         setMessage("Task was deleted!");
       } else {
-        setMessage("Error during delete");
+        setMessage("Error during delete.");
       }
     } else {
-      console.error("Failed to generate delete response");
+      console.error("Failed to generate delete response.");
     }
   }
 
@@ -134,9 +136,9 @@ export default function Home() {
       const updated = await res.json();
       if (Array.isArray(updated)) {
         setList(updated);
-        setMessage("Task is marked complete");
+        setMessage("Task is marked complete :D");
       } else {
-        setMessage("An error has occoured during UPDATE");
+        setMessage("An error has occoured during the update :(");
       }
     } else {
       console.error("Failed to generate response for marking complete");
@@ -157,7 +159,7 @@ export default function Home() {
         setList(updated);
         setMessage("Task updated!");
       } else {
-        setMessage("Update failed");
+        setMessage("Update failed.");
       }
     } else {
       console.error("Failed to generate response for edit");
@@ -198,9 +200,7 @@ export default function Home() {
   useEffect(() => {
     if (list === null || list.length === 0) {
       setMessage("Add your first task to start!");
-    } else {
-      setMessage(""); // Clear message when tasks exist
-    }
+    } 
   }, [list]);
 
   // prevents crashing in case list is null
@@ -213,6 +213,7 @@ export default function Home() {
     <Table.Tr key={task.id}>
       <Table.Td>
         <Checkbox
+          className="m-2"
           checked={task.status === "Completed"}
           onChange={() => handleComplete(task.id, task.status)} />
       </Table.Td>
@@ -262,19 +263,30 @@ export default function Home() {
       <Table.Td>
         {editingId === task.id ? (
           <>
-            <Button onClick={() => handleEdit(task.id)} color="green">Save</Button>
-            <Button onClick={() => setEditingId(null)} color="red">Cancel</Button>
+            <Button className="mr-2" onClick={() => handleEdit(task.id)} color="green">
+              <MdCheck className="w-5 h-5" />
+            </Button>
+            <Button onClick={() => setEditingId(null)} color="red">
+              <MdOutlineCancel className="w-5 h-5" />
+            </Button>
           </>
         ) : (
           <>
-            <Button color="red" onClick={() => handleDelete(task.id)}>Delete</Button>
             <Button
+              className="mr-2"
               onClick={() => {
                 setEditingId(task.id);
                 setEditTitle(task.title);
                 setEditDescription(task.description);
                 setEditDueDate(task.due_date);
-              }}>Edit</Button>
+              }}>
+              <MdEdit size={"1.2rem"} className="w-5 h-5" />
+            </Button>
+
+            <Button color="red" onClick={() => handleDelete(task.id)}>
+              <MdDeleteOutline size={"1.5rem"} className="w-5 h-5" />
+            </Button>
+
           </>
         )}
 
@@ -283,88 +295,102 @@ export default function Home() {
 
   ))
 
-
+  // UI display + styling
   return (
-    <div className=" w-full h-full justify-center items-center" >
-      <Table withRowBorders={false} verticalSpacing="md" className="bg-slate-300">
+    <div className=" w-screen h-screen flex flex-col justify-center items-center bg-stone-800" >
+      <div className="w-5/6 h-full flex flex-col justify-center items-center">
+        <p className="text-5xl mb-5 text-stone-100">TO DO LIST</p>
+        <Table withRowBorders={false} verticalSpacing="sm" className="bg-stone-300"
+          striped highlightOnHover highlightOnHoverColor="#e7e5e4" stripedColor="#bfbab7"
+          styles={{
+            table: {
+              border: "3px solid white", // 5px white border
+              borderRadius: "0.75rem",   // optional: rounded corners
+              borderCollapse: "collapse", // optional: removes double borders between cells
+            },
+          }}
+        >
 
-        {/* table headers (titles) */}
-        <Table.Thead className="bg-slate-500">
+          {/* table headers (titles) */}
+          <Table.Thead >
+            <Table.Tr >
+              <Table.Th> </Table.Th>
+              <Table.Th>Title</Table.Th>
+              <Table.Th>Description</Table.Th>
+              <Table.Th onClick={handleDateSort} className="cursor-pointer">Due Date {ascSort ? "↑" : "↓"}</Table.Th>
+              <Table.Th onClick={() => {
+                setStatusSort((prev) =>
+                  prev === "Both" ? "PendingOnly" :
+                    prev === "PendingOnly" ? "CompletedOnly" :
+                      "Both"
+                );
+              }}
+                className="cursor-pointer">Status ({statusSort})</Table.Th>
+              <Table.Th> </Table.Th>
+            </Table.Tr>
+          </Table.Thead>
 
+          {/* table body */}
+          <Table.Tbody>
+            {rows}
+            <Table.Tr className="bg-white align-top h-16 ">
+              <Table.Td></Table.Td>
 
-          <Table.Tr >
-            <Table.Th className="bg-slate-300"> </Table.Th>
-            <Table.Th>Title</Table.Th>
-            <Table.Th>Description</Table.Th>
-            <Table.Th onClick={handleDateSort} className="cursor-pointer">Due Date {ascSort ? "↑" : "↓"}</Table.Th>
-            <Table.Th onClick={() => {
-              setStatusSort((prev) =>
-                prev === "Both" ? "PendingOnly" :
-                  prev === "PendingOnly" ? "CompletedOnly" :
-                    "Both"
-              );
-            }}
-              className="cursor-pointer">Status ({statusSort})</Table.Th>
-          </Table.Tr>
-        </Table.Thead>
+              {/* extra row for submitting new tasks */}
+              {/* Input space for new title */}
+              <Table.Td >
+                <TextInput
+                  required                                                      // adds asterisk, prevents submission ONLY if wrapped in <form onSubmit> if field is empty
+                  withAsterisk
+                  label="Title"
+                  placeholder="Enter task title"
+                  value={title}
+                  onChange={(e) => setTitle(e.currentTarget.value)}
+                  error={!title.trim() ? "Task required :(" : false}            // error validation where .trim() ensures white spaces don't count as valid input
+                />
+              </Table.Td>
 
-        {/* table body */}
-        <Table.Tbody>
-          {rows}
-          <Table.Tr className="bg-white align-top h-16 ">
-            <Table.Td></Table.Td>
+              {/* Input space for new description */}
+              <Table.Td>
+                <TextInput
+                  classNames={{ input: "w-5/6" }}                                   // mantine styling
+                  label="Description"
+                  value={description}
+                  onChange={(e) => setDescription(e.currentTarget.value)}
+                  placeholder="(Optional) Enter task description" />
+              </Table.Td>
 
-            {/* extra row for submitting new tasks */}
-            {/* Input space for new title */}
-            <Table.Td >
-              <TextInput
-                required                                                      // adds asterisk, prevents submission ONLY if wrapped in <form onSubmit> if field is empty
-                withAsterisk
-                label="Title"
-                placeholder="Enter task title"
-                value={title}
-                onChange={(e) => setTitle(e.currentTarget.value)}
-                error={!title.trim() ? "Task required :(" : false}            // error validation where .trim() ensures white spaces don't count as valid input
-              />
-            </Table.Td>
+              {/* Input space for new due date */}
+              <Table.Td>
+                <TextInput
+                  required
+                  label="Due Date"
+                  placeholder="Enter due date"
+                  value={dueDate}
+                  onChange={(e) => {
+                    const newDate = e.currentTarget.value;  //setState is asynchronous, ensures setState get the latest value
+                    setDueDate(newDate)
+                    isValidDate(newDate);
+                  }}
+                  error={dateError} />
+              </Table.Td>
 
-            {/* Input space for new description */}
-            <Table.Td>
-              <TextInput
-                classNames={{ input: "w-5/6" }}                                   // mantine styling
-                label="Description"
-                value={description}
-                onChange={(e) => setDescription(e.currentTarget.value)}
-                placeholder="(Optional) Enter task description" />
-            </Table.Td>
+              {/* Submit input button */}
+              <Table.Td>
+                <Button className="mt-5" color="green" onClick={handleSubmit}>
+                  <MdOutlineAdd className="mr-1 w-5 h-5" /> New task
+                </Button>
+              </Table.Td>
+              <Table.Td></Table.Td>
+            </Table.Tr>
 
-            {/* Input space for new due date */}
-            <Table.Td>
-              <TextInput
-                required
-                label="Due Date"
-                placeholder="Enter due date"
-                value={dueDate}
-                onChange={(e) => {
-                  const newDate = e.currentTarget.value;  //setState is asynchronous, ensures setState get the latest value
-                  setDueDate(newDate)
-                  isValidDate(newDate);
-                }}
-                error={dateError} />
-            </Table.Td>
+          </Table.Tbody>
 
-            {/* Submit input button */}
-            <Table.Td>
-              <Button className="mt-5" color="green" onClick={handleSubmit}>
-                Submit New Task
-              </Button>
-            </Table.Td>
-          </Table.Tr>
-
-        </Table.Tbody>
-
-      </Table>
-      <p>{message}</p>
+        </Table>
+        <div className="mt-8 rounded-full w-3/4 bg-stone-200">
+          <p className="py-4 px-6">System message: {message}</p>
+        </div>
+      </div>
     </div>
   );
 }
