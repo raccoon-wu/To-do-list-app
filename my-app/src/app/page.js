@@ -1,7 +1,9 @@
 "use client"
 import { useEffect, useState } from "react";
 import { Box, Table, TextInput, Button, Checkbox } from '@mantine/core';
+import { fetchTasks, addTask, deleteTask, updateTaskStatus, editTask, } from "./services/taskServices.js"; //server API calls
 import "./globals.css"
+
 export default function Home() {
 
   const [message, setMessage] = useState("What");
@@ -23,26 +25,30 @@ export default function Home() {
   const [ascSort, setAscSort] = useState(true);
   const [statusSort, setStatusSort] = useState("Both");
 
-
+  // initial data fetch from db on component mount
   useEffect(() => {
     const fetchData = async () => {       //async so application is not frozen whilst script is running
 
-      const response = await fetch("/api/dbFunctions", { method: "GET" });
+      const res = await fetchTasks();
       // await - makes javascript wait for result of promise (to resolve or reject, ) before continuing
       // fetch makes HTTP requests, returns a promise that resolves to the request response
       // await and fetch are used together to make async code behave like synchronous code
 
-      const data = await response.json();
-      if (Array.isArray(data)) {
-        setList(data);
+      if (res.ok) {
+        const updated = await res.json();
+        if (Array.isArray(updated)) {
+          setList(updated);
+        } else {
+          console.log("Db data not an array");
+        }
       } else {
-        console.error("Unexpected data from server:", data);
-        setMessage("Failed to load data");
+        console.log("Failed to load updates from db")
       }
     };
     fetchData();
   }, []);
 
+  // checks whether dates are not correct dd/mm/yyyy format, is a real valid date and not in the past
   const isValidDate = (newDate) => {
     // if (!/^\d+$/.test(dueDate)) return (setDateError("Please use only numbers?"))
     // Checks if date is in dd-mm-yyyy format, only digits and dashes are allowed
@@ -74,26 +80,17 @@ export default function Home() {
     setDateError(null);
   };
 
+  // ensures valid inputs prior to server api call for adding new task, refreshes list when successful, otherwise returns error messages
   const handleSubmit = async () => {
     // prevent submit if required fields aren't filled
     if (!title.trim() || !dueDate.trim() || dateError) {
       return (setMessage("Required fields are not filled in!!"));
     }
 
-    const res = await fetch("/api/dbFunctions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", }, // informs server that body of the request ontains JSON data
-      body: JSON.stringify({                            // converts Javascript objects into JSON data
-        title: title,
-        description: description,
-        due_date: dueDate,
-        status: "Pending", // default status
-      }),
-    });
+    const res = await addTask({ title, description, due_date: dueDate });
 
     if (res.ok) { //Checks if HTTP response status is in the range 200-299 (successful request)
       const updated = await res.json();
-
       setTitle("");
       setDescription("");
       setDueDate("");
@@ -109,12 +106,9 @@ export default function Home() {
     }
   };
 
+  // passes id to server in api call to delete, refreshes list when successful, otherwise returns error messages
   const handleDelete = async (id) => {
-    const res = await fetch("/api/dbFunctions", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
+    const res = await deleteTask(id);
 
     if (res.ok) {
       const updated = await res.json();
@@ -129,15 +123,12 @@ export default function Home() {
     }
   }
 
+  // passes status to server to update, refreshes list when successful, otherwise returns error messages
   const handleComplete = async (id, currentStatus) => {
     // allows unchecking
     const newStatus = currentStatus === "Completed" ? "Pending" : "Completed";
 
-    const res = await fetch("/api/dbFunctions", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status: newStatus }),
-    });
+    const res = await updateTaskStatus(id, newStatus);
 
     if (res.ok) {
       const updated = await res.json();
@@ -152,16 +143,12 @@ export default function Home() {
     }
   }
 
+  // passes id, editted title, editted descrip, editted due date to server, refreshes list when successful, otherwise returns error messages
   const handleEdit = async (id) => {
-    const res = await fetch("/api/dbFunctions", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id,
-        title: editTitle,
-        description: editDescription,
-        due_date: editDueDate,
-      }),
+    const res = await editTask(id, {
+      title: editTitle,
+      description: editDescription,
+      due_date: editDueDate,
     });
 
     if (res.ok) {
@@ -179,6 +166,7 @@ export default function Home() {
     setEditingId(null);
   };
 
+  // parses dates into <Date> objects which Javascript can handle, compares each value to the next
   const handleDateSort = () => {
     if (list) {
       const sortedDates = [...list].sort((a, b) => {
@@ -197,29 +185,30 @@ export default function Home() {
     } else { setMessage("No items to sort!") }
   }
 
+  // filters new list based on status - condition ? () : (), condition can either be pending only, completedly only or allow both
   const filteredStatusList = Array.isArray(list)
     ? list.filter((task) => {
       if (statusSort === "PendingOnly") return task.status === "Pending";
       if (statusSort === "CompletedOnly") return task.status === "Completed";
       return true;
     })
-    : []; // fallback during loading
+    : []; // fallback to return empty array instead of crashing
 
-    useEffect(() => {
-  if (list === null || list.length === 0) {
-    setMessage("Add your first task to start!");
-  } else {
-    setMessage(""); // Clear message when tasks exist
-  }
-}, [list]);
+  // instructions to user when list is empty
+  useEffect(() => {
+    if (list === null || list.length === 0) {
+      setMessage("Add your first task to start!");
+    } else {
+      setMessage(""); // Clear message when tasks exist
+    }
+  }, [list]);
 
+  // prevents crashing in case list is null
   if (!Array.isArray(list)) {
     return <p>Loading...</p>;
   }
 
-
-
-
+  // maps new table rows for each task
   const rows = filteredStatusList.map((task) => (
     <Table.Tr key={task.id}>
       <Table.Td>
@@ -268,6 +257,8 @@ export default function Home() {
       </Table.Td>
 
       <Table.Td>{task.status}</Table.Td>
+
+      {/* editing buttons UI */}
       <Table.Td>
         {editingId === task.id ? (
           <>
@@ -296,7 +287,11 @@ export default function Home() {
   return (
     <div className=" w-full h-full justify-center items-center" >
       <Table withRowBorders={false} verticalSpacing="md" className="bg-slate-300">
+
+        {/* table headers (titles) */}
         <Table.Thead className="bg-slate-500">
+
+
           <Table.Tr >
             <Table.Th className="bg-slate-300"> </Table.Th>
             <Table.Th>Title</Table.Th>
@@ -312,10 +307,14 @@ export default function Home() {
               className="cursor-pointer">Status ({statusSort})</Table.Th>
           </Table.Tr>
         </Table.Thead>
+
+        {/* table contents */}
         <Table.Tbody>
           {rows}
           <Table.Tr className="bg-white align-top h-16 ">
             <Table.Td></Table.Td>
+
+            {/* extra row for submitting new tasks */}
             <Table.Td >
               <TextInput
                 required                                                      // adds asterisk, prevents submission ONLY if wrapped in <form onSubmit> if field is empty
