@@ -1,7 +1,7 @@
 // main with functions and UI
 "use client"
 import { useEffect, useState } from "react";
-import { Box, Table, TextInput, Button, Checkbox } from '@mantine/core';
+import { Box, Table, TextInput, Button, Checkbox } from '@mantine/core'; //UI library
 import { fetchTasks, addTask, deleteTask, updateTaskStatus, editTask, } from "./services/taskServices.js"; //server API calls
 import "./globals.css"
 
@@ -53,10 +53,19 @@ export default function Home() {
 
   // checks whether dates are not correct dd/mm/yyyy format, is a real valid date and not in the past
   const isValidDate = (newDate) => {
+
+    // checks whether dates are empty
+    if (newDate.trim() == "") {
+      setDateError("Date required")
+      return false;
+    }
+
     // if (!/^\d+$/.test(dueDate)) return (setDateError("Please use only numbers?"))
     // Checks if date is in dd-mm-yyyy format, only digits and dashes are allowed
-    if (newDate == "") return (setDateError("Date required"));
-    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(newDate)) { return setDateError("Date must be in dd/mm/yyyy format"); }
+    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(newDate)) {
+      setDateError("Date must be in dd/mm/yyyy format");
+      return false;
+    }
 
     // splits input string into ["xx", "xx", "xx"] as sperated by "-", converts each string into a number, then assigns through array descructuring
     const [day, month, year] = newDate.split("/").map(Number);
@@ -72,15 +81,18 @@ export default function Home() {
       date.getMonth() + 1 !== month ||
       date.getFullYear() !== year
     ) {
-      return setDateError("Date does not exist");
+      setDateError("Date does not exist");
+      return false;
     }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     if (date < today) {
-      return setDateError("Date must be today or later");
+      setDateError("Date must be today or later");
+      return false;
     }
     setDateError(null);
+    return true;
   };
 
   // ensures valid inputs prior to server api call for adding new task, refreshes list when successful, otherwise returns error messages
@@ -148,6 +160,19 @@ export default function Home() {
 
   // passes id, editted title, editted descrip, editted due date to server, refreshes list when successful, otherwise returns error messages
   const handleEdit = async (id) => {
+
+    // checks that required fields are not empty
+    if (!editTitle.trim() || !editDueDate.trim()) {
+      return setMessage("Required fields are missing!");
+    }
+
+    console.log(editDueDate);
+    let newDate = editDueDate;
+    // checks whether updated date is valid
+    if (!isValidDate(newDate)) {
+      return setMessage("Updated date appears incorrect, check format and validity!");
+    }
+
     const res = await editTask(id, {
       title: editTitle,
       description: editDescription,
@@ -167,6 +192,7 @@ export default function Home() {
     }
 
     setEditingId(null);
+
   };
 
   // parses dates into <Date> objects which Javascript can handle, compares each value to the next
@@ -201,7 +227,7 @@ export default function Home() {
   useEffect(() => {
     if (list === null || list.length === 0) {
       setMessage("Add your first task to start!");
-    } 
+    }
   }, [list]);
 
   // prevents crashing in case list is null
@@ -248,7 +274,7 @@ export default function Home() {
             placeholder="Enter due date"
             value={editDueDate}
             onChange={(e) => {
-              const newDate = e.currentTarget.value;  //setState is asynchronous, ensures setState get the latest value
+              let newDate = e.currentTarget.value;  //setState is asynchronous, ensures setState get the latest value
               setEditDueDate(newDate)
               isValidDate(newDate);
             }}
