@@ -1,3 +1,4 @@
+// main with functions and UI
 "use client"
 import { useEffect, useState } from "react";
 import { Box, Table, TextInput, Button, Checkbox } from '@mantine/core';
@@ -208,7 +209,7 @@ export default function Home() {
     return <p>Loading...</p>;
   }
 
-  // maps new table rows for each task
+  // maps new table rows for each task with the following: checkbox, editable title, editable description, editable due date
   const rows = filteredStatusList.map((task) => (
     <Table.Tr key={task.id}>
       <Table.Td>
@@ -299,7 +300,7 @@ export default function Home() {
   return (
     <div className=" w-screen h-screen flex flex-col justify-center items-center bg-stone-800" >
       <div className="w-5/6 h-full flex flex-col justify-center items-center">
-        <p className="text-5xl mb-5 text-stone-100">TO DO LIST</p>
+        <p className="text-6xl mb-10 text-stone-100">TO DO LIST</p>
         <Table withRowBorders={false} verticalSpacing="sm" className="bg-stone-300"
           striped highlightOnHover highlightOnHoverColor="#e7e5e4" stripedColor="#bfbab7"
           styles={{

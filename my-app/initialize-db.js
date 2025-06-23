@@ -10,9 +10,10 @@ const db = new sqlite3.Database("./data.db", sqlite3.OPEN_READWRITE | sqlite3.OP
     console.log("Database connected");
 });
 
+// initialises table with sample data (for testing purposes)
+db.serialize(() => {
 // .serialize does not run queries itself but ensures operations are executed sequentially in the order they are written
 // whilst javascript execute code sequentially, operations in sqlite3 are asynchronous (does not wait for each other to finish before starting the next one)
-db.serialize(() => {
 
     // CREATE TABLE will only execute if table does not exist yet, IF NOT EXISTS safeguards against errors if table exists already
     sql = `

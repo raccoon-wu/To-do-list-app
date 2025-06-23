@@ -1,12 +1,14 @@
-// src/app/api/dbFunctions/route.js
+//custom HTTP request handler returning custom Response with JSON data/error message
 import sqlite3 from "sqlite3";
 import path, { resolve } from "path";
 import { error } from "console";
+
 
 function getDbPath() {
   return path.resolve(process.cwd(), "data.db");
 }
 
+//custom GET request handler that fetches all from db
 export async function GET() {
   const db = new sqlite3.Database(getDbPath());
 
@@ -27,6 +29,8 @@ export async function GET() {
   });
 };
 
+// custom POST request handler for adding new task with all parameters required
+// once updated, pull everything from db again to refresh list
 export async function POST(req) {
   const db = new sqlite3.Database(getDbPath());
   const body = await req.json();
@@ -60,6 +64,8 @@ export async function POST(req) {
   });
 };
 
+// custom DELETE request handler where if an ID is provided, delete task associated with id
+// error handling is present if id is missing
 export async function DELETE(req) {
 
   const db = new sqlite3.Database(getDbPath());
@@ -101,6 +107,7 @@ export async function DELETE(req) {
   });
 };
 
+// custom PATCH request handler allowing edits, where all fields are optional (if provided, added to update [])
 export async function PATCH(req) {
   const db = new sqlite3.Database(getDbPath());
   const body = await req.json();
@@ -155,7 +162,7 @@ export async function PATCH(req) {
   return new Promise((resolve) => {
     db.run(sql, values, function (err) {
       if (err) {
-        console.error("DB error:", err); // 🧨 Catch error here
+        console.error("DB error:", err); 
         return resolve(new Response(JSON.stringify({ error: err.message }), {
           status: 500,
           headers: { "Content-Type": "application/json" },
@@ -165,7 +172,7 @@ export async function PATCH(req) {
       db.all("SELECT * FROM data", [], (err, rows) => {
         db.close();
         if (err) {
-          console.error("DB read error:", err); // 🧨 Also catch error here
+          console.error("DB read error:", err); 
           return resolve(new Response(JSON.stringify({ error: err.message }), {
             status: 500,
             headers: { "Content-Type": "application/json" },
